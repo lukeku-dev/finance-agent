@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finance Agent</title>
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, sans-serif;
+        background: #f0f2f5;
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 20px;
+      }
+      h1 {
+        text-align: center;
+        color: #1a1a2e;
+        margin-bottom: 30px;
+        font-size: 28px;
+      }
+      h2 {
+        font-size: 18px;
+        margin-bottom: 12px;
+        color: #1a1a2e;
+      }
+      .card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      }
+      button {
+        background: #4f46e5;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 15px;
+        width: 100%;
+      }
+      button:hover {
+        background: #4338ca;
+      }
+      .btn-green {
+        background: #059669;
+      }
+      .btn-green:hover {
+        background: #047857;
+      }
+      input[type="text"],
+      input[type="number"] {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 14px;
+        width: 100%;
+        margin-bottom: 8px;
+      }
+      textarea {
+        width: 100%;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 15px;
+        resize: none;
+        height: 80px;
+        margin-bottom: 12px;
+        font-family: inherit;
+      }
+      textarea:focus {
+        outline: none;
+        border-color: #4f46e5;
+      }
+      .response-box {
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 16px;
+        margin-top: 16px;
+        color: #1a1a2e;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        min-height: 60px;
+      }
+      .loading {
+        color: #4f46e5;
+        font-style: italic;
+      }
+      .chart-container {
+        position: relative;
+        height: 300px;
+        margin-top: 16px;
+      }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .summary-card {
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 16px;
+        text-align: center;
+      }
+      .summary-card h3 {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 8px;
+      }
+      .summary-card p {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1a1a2e;
+      }
+      .bank-tag {
+        display: inline-block;
+        background: #e0e7ff;
+        color: #4f46e5;
+        padding: 6px 12px;
+        border-radius: 20px;
+        margin: 4px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+      .installment-item {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        border-left: 4px solid #4f46e5;
+      }
+      .installment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .installment-header strong {
+        font-size: 15px;
+        color: #1a1a2e;
+      }
+      .remove-btn {
+        background: none;
+        border: none;
+        color: #dc2626;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 0;
+        width: auto;
+      }
+      .installment-details {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .detail-box {
+        background: white;
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+      }
+      .detail-box span {
+        font-size: 11px;
+        color: #666;
+        display: block;
+      }
+      .detail-box strong {
+        font-size: 16px;
+        color: #4f46e5;
+      }
+      .progress-bar {
+        background: #e5e7eb;
+        border-radius: 99px;
+        height: 8px;
+        margin-top: 10px;
+      }
+      .progress-fill {
+        background: #4f46e5;
+        border-radius: 99px;
+        height: 8px;
+      }
+      .total-box {
+        background: #fef3c7;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        margin-top: 12px;
+      }
+      .total-box h3 {
+        font-size: 14px;
+        color: #92400e;
+      }
+      .total-box p {
+        font-size: 28px;
+        font-weight: 700;
+        color: #92400e;
+      }
+      .form-section {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 12px;
+      }
+      .form-section h3 {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 12px;
+      }
+      label {
+        font-size: 13px;
+        color: #555;
+        display: block;
+        margin-bottom: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>💰 Finance Agent</h1>
+
+      <!-- Bank Connection -->
+      <div class="card">
+        <h2>🏦 Connected Banks</h2>
+        <div id="bankList">
+          <p style="color: #999; font-size: 14px">No banks connected yet</p>
+        </div>
+        <br />
+        <button onclick="connectBank()">+ Connect a Bank</button>
+      </div>
+
+      <!-- Chart -->
+      <div class="card" id="chartCard" style="display: none">
+        <h2>📊 Daily Spending (Last 30 Days)</h2>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <h3>Total Spent</h3>
+            <p id="totalSpent">-</p>
+          </div>
+          <div class="summary-card">
+            <h3>Daily Average</h3>
+            <p id="dailyAvg">-</p>
+          </div>
+          <div class="summary-card">
+            <h3>Transactions</h3>
+            <p id="txCount">-</p>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="spendingChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Pay Over Time -->
+      <div class="card">
+        <h2>💳 Pay Over Time</h2>
+        <p style="color: #666; font-size: 14px; margin-bottom: 12px">
+          Track your installment payments and see exactly how much you owe each
+          month.
+        </p>
+
+        <div id="installmentList"></div>
+
+        <div id="monthlyTotal" style="display: none" class="total-box">
+          <h3>Total Due This Month</h3>
+          <p id="monthlyTotalAmount">$0</p>
+        </div>
+
+        <div class="form-section">
+          <h3>➕ Add Installment Plan</h3>
+          <div class="grid-2">
+            <div>
+              <label>Credit Card</label>
+              <input type="text" id="cardName" placeholder="e.g. Amex Gold" />
+            </div>
+            <div>
+              <label>Item / Transaction</label>
+              <input type="text" id="itemName" placeholder="e.g. MacBook Pro" />
+            </div>
+          </div>
+          <div class="grid-3">
+            <div>
+              <label>Total Amount ($)</label>
+              <input type="number" id="totalAmount" placeholder="e.g. 1200" />
+            </div>
+            <div>
+              <label>Monthly Payment ($)</label>
+              <input type="number" id="monthlyPayment" placeholder="e.g. 100" />
+            </div>
+            <div>
+              <label>Total Installments</label>
+              <input
+                type="number"
+                id="totalInstallments"
+                placeholder="e.g. 12"
+              />
+            </div>
+          </div>
+          <div>
+            <label>Installments Already Paid</label>
+            <input type="number" id="paidInstallments" placeholder="e.g. 3" />
+          </div>
+          <button class="btn-green" onclick="addInstallment()">
+            + Add Installment
+          </button>
+        </div>
+      </div>
+
+      <!-- Ask Claude -->
+      <div class="card">
+        <h2>🤖 Ask Claude</h2>
+        <textarea
+          id="question"
+          placeholder="Ask anything about your finances...
+e.g. How much do I owe in total this month? Which account did I spend the most from?"
+        ></textarea>
+        <button onclick="analyze()">Ask Claude</button>
+        <div class="response-box" id="response">
+          Your answer will appear here...
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let spendingChart = null;
+      let installments = JSON.parse(
+        localStorage.getItem("installments") || "[]"
+      );
+      renderInstallments();
+
+      async function connectBank() {
+        const bankName = prompt(
+          "Enter bank name (e.g. Chase, Bank of America):"
+        );
+        if (!bankName) return;
+
+        const res = await fetch("/api/create_link_token", { method: "POST" });
+        const data = await res.json();
+
+        const handler = Plaid.create({
+          token: data.link_token,
+          onSuccess: async (public_token) => {
+            const res = await fetch("/api/exchange_token", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ public_token, bank_name: bankName }),
+            });
+            const data = await res.json();
+            updateBankList(data.accounts);
+            loadChart();
+          },
+          onExit: (err) => {
+            if (err) console.error(err);
+          },
+        });
+        handler.open();
+      }
+
+      function updateBankList(accounts) {
+        const list = document.getElementById("bankList");
+        list.innerHTML =
+          accounts.length === 0
+            ? '<p style="color:#999;font-size:14px">No banks connected yet</p>'
+            : accounts
+                .map((a) => `<span class="bank-tag">✅ ${a}</span>`)
+                .join("");
+      }
+
+      async function loadChart() {
+        const res = await fetch("/api/chart_data", { method: "POST" });
+        const data = await res.json();
+        if (data.error) return;
+
+        const total = data.daily.reduce((sum, d) => sum + d.amount, 0);
+        const avg = total / (data.daily.length || 1);
+        document.getElementById("totalSpent").textContent =
+          "$" + total.toFixed(2);
+        document.getElementById("dailyAvg").textContent = "$" + avg.toFixed(2);
+        document.getElementById("txCount").textContent = data.tx_count;
+        document.getElementById("chartCard").style.display = "block";
+
+        const ctx = document.getElementById("spendingChart").getContext("2d");
+        if (spendingChart) spendingChart.destroy();
+        spendingChart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: data.daily.map((d) => d.date),
+            datasets: [
+              {
+                label: "Daily Spending ($)",
+                data: data.daily.map((d) => d.amount),
+                backgroundColor: "#4f46e5",
+                borderRadius: 6,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, ticks: { callback: (v) => "$" + v } },
+            },
+          },
+        });
+      }
+
+      function addInstallment() {
+        const cardName = document.getElementById("cardName").value.trim();
+        const itemName = document.getElementById("itemName").value.trim();
+        const totalAmount = parseFloat(
+          document.getElementById("totalAmount").value
+        );
+        const monthlyPayment = parseFloat(
+          document.getElementById("monthlyPayment").value
+        );
+        const totalInstallments = parseInt(
+          document.getElementById("totalInstallments").value
+        );
+        const paidInstallments = parseInt(
+          document.getElementById("paidInstallments").value
+        );
+
+        if (
+          !cardName ||
+          !itemName ||
+          isNaN(totalAmount) ||
+          isNaN(monthlyPayment) ||
+          isNaN(totalInstallments) ||
+          isNaN(paidInstallments)
+        ) {
+          alert("Please fill in all fields!");
+          return;
+        }
+        if (paidInstallments >= totalInstallments) {
+          alert("Paid installments cannot exceed total installments!");
+          return;
+        }
+
+        installments.push({
+          cardName,
+          itemName,
+          totalAmount,
+          monthlyPayment,
+          totalInstallments,
+          paidInstallments,
+        });
+        localStorage.setItem("installments", JSON.stringify(installments));
+        renderInstallments();
+        [
+          "cardName",
+          "itemName",
+          "totalAmount",
+          "monthlyPayment",
+          "totalInstallments",
+          "paidInstallments",
+        ].forEach((id) => (document.getElementById(id).value = ""));
+      }
+
+      function removeInstallment(i) {
+        installments.splice(i, 1);
+        localStorage.setItem("installments", JSON.stringify(installments));
+        renderInstallments();
+      }
+
+      function renderInstallments() {
+        const list = document.getElementById("installmentList");
+        if (installments.length === 0) {
+          list.innerHTML =
+            '<p style="color:#999;font-size:14px;margin-bottom:12px">No installment plans added yet.</p>';
+          document.getElementById("monthlyTotal").style.display = "none";
+          return;
+        }
+
+        let totalMonthly = 0;
+        list.innerHTML = installments
+          .map((item, i) => {
+            const remaining = item.totalInstallments - item.paidInstallments;
+            const remainingAmount = remaining * item.monthlyPayment;
+            const progress = Math.round(
+              (item.paidInstallments / item.totalInstallments) * 100
+            );
+            totalMonthly += item.monthlyPayment;
+
+            return `
+            <div class="installment-item">
+                <div class="installment-header">
+                    <strong>💳 ${item.cardName} — ${item.itemName}</strong>
+                    <button class="remove-btn" onclick="removeInstallment(${i})">✕</button>
+                </div>
+                <div class="installment-details">
+                    <div class="detail-box"><span>Monthly Payment</span><strong>$${item.monthlyPayment.toFixed(
+                      2
+                    )}</strong></div>
+                    <div class="detail-box"><span>Progress</span><strong>${
+                      item.paidInstallments
+                    }/${item.totalInstallments}</strong></div>
+                    <div class="detail-box"><span>Remaining</span><strong>${remaining} months</strong></div>
+                    <div class="detail-box"><span>Total Amount</span><strong>$${item.totalAmount.toFixed(
+                      2
+                    )}</strong></div>
+                    <div class="detail-box"><span>Amount Left</span><strong>$${remainingAmount.toFixed(
+                      2
+                    )}</strong></div>
+                    <div class="detail-box"><span>Paid Off</span><strong>${progress}%</strong></div>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+            </div>`;
+          })
+          .join("");
+
+        document.getElementById("monthlyTotal").style.display = "block";
+        document.getElementById("monthlyTotalAmount").textContent =
+          "$" + totalMonthly.toFixed(2);
+      }
+
+      async function analyze() {
+        const banks = document.querySelectorAll(".bank-tag");
+        if (banks.length === 0) {
+          alert("Please connect a bank first!");
+          return;
+        }
+
+        const question =
+          document.getElementById("question").value || "Summarize my spending";
+        const responseBox = document.getElementById("response");
+        responseBox.textContent = "Thinking...";
+        responseBox.className = "response-box loading";
+
+        const res = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, installments }),
+        });
+        const data = await res.json();
+        responseBox.textContent = data.response || data.error;
+        responseBox.className = "response-box";
+      }
+
+      fetch("/api/accounts")
+        .then((r) => r.json())
+        .then((d) => updateBankList(d.accounts));
+    </script>
+  </body>
+</html>
